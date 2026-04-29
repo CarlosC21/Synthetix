@@ -1,0 +1,12 @@
+# Ignore build artifacts
+build/
+bin/
+obj/
+
+# IDE files
+.vs/
+.vscode/
+.cursor/
+
+# User-specific files
+*.user
