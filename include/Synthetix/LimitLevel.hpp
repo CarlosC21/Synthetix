@@ -1,31 +1,60 @@
 #pragma once
 #include "Types.hpp"
 #include <deque>
-#include <numeric>
+#include <vector>
+#include <algorithm>
 
-namespace Synthetix {
+namespace synthetix {
 
-    class LimitLevel {
-    private:
-        int32_t price;
-        std::deque<Order> orders; // Deque is more cache-friendly than std::list
+class LimitLevel {
+public:
+    LimitLevel() : price_(0) {}
+    explicit LimitLevel(Price p) : price_(p) {}
 
-    public:
-        explicit LimitLevel(int32_t p) : price(p) {}
+    void addOrder(const Order& order) {
+        orders_.push_back(order);
+    }
 
-        void addOrder(const Order& order) {
-            orders.push_back(order);
-        }
+    // High-performance fill logic: Price-Time Priority (FIFO)
+    void fill(Order& incoming, std::vector<TradeReport>& trades) {
+        while (incoming.quantity > 0 && !orders_.empty()) {
+            Order& resting = orders_.front();
 
-        uint32_t totalVolume() const {
-            uint32_t volume = 0;
-            for (const auto& order : orders) {
-                if (order.is_active) {
-                    volume += order.quantity;
-                }
+            // Calculate the fill amount for this specific resting order
+            Volume fillQty = std::min(incoming.quantity, resting.quantity);
+
+            if (fillQty > 0) {
+                // Generate the trade event
+                trades.push_back({resting.id, incoming.id, price_, fillQty});
+
+                incoming.quantity -= fillQty;
+                resting.quantity -= fillQty;
             }
-            return volume;
-        }
-    };
 
-} // namespace Synthetix
+            // If the resting order is fully filled, remove it from the time-priority queue
+            if (resting.quantity == 0) {
+                orders_.pop_front();
+            } else {
+                // Resting order still has remaining volume; incoming is fully filled
+                break;
+            }
+        }
+    }
+
+    Volume getTotalVolume() const {
+        Volume total = 0;
+        for (const auto& order : orders_) {
+            total += order.quantity;
+        }
+        return total;
+    }
+
+    Price getPrice() const { return price_; }
+    bool isEmpty() const { return orders_.empty(); }
+
+private:
+    Price price_;
+    std::deque<Order> orders_; 
+};
+
+} // namespace synthetix

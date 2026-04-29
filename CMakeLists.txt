@@ -14,8 +14,12 @@ cmake_policy(SET CMP0135 NEW)
 option(SYNT_ENABLE_TESTS "Build unit tests" ON)
 option(SYNT_ENABLE_BENCHMARKS "Build benchmarks" ON)
 
+# ---------------------------------------------------------------------------
+# Core Library: The engine logic
+# ---------------------------------------------------------------------------
 add_library(synthetix
   src/Engine.cpp
+  src/OrderBook.cpp  # Added for Phase 2
 )
 add_library(Synthetix::synthetix ALIAS synthetix)
 
@@ -33,17 +37,23 @@ else()
   target_compile_options(synthetix PRIVATE -Wall -Wextra -Wpedantic)
 endif()
 
+# ---------------------------------------------------------------------------
+# Main Application
+# ---------------------------------------------------------------------------
 add_executable(synthetix_app
   src/main.cpp
 )
 target_link_libraries(synthetix_app PRIVATE Synthetix::synthetix)
 
+# ---------------------------------------------------------------------------
+# Testing Suite
+# ---------------------------------------------------------------------------
 include(CTest)
 
 if (SYNT_ENABLE_TESTS AND BUILD_TESTING)
   include(FetchContent)
 
-  # Prevent GoogleTest from overriding the parent project's compiler/linker settings on Windows.
+  # Prevent GoogleTest from overriding parent settings on Windows
   set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 
   FetchContent_Declare(
@@ -56,6 +66,8 @@ if (SYNT_ENABLE_TESTS AND BUILD_TESTING)
 
   add_executable(synthetix_tests
     tests/test_smoke.cpp
+    tests/test_orderbook.cpp
+    tests/test_matching.cpp
   )
   target_link_libraries(synthetix_tests PRIVATE Synthetix::synthetix GTest::gtest_main)
 
@@ -63,10 +75,12 @@ if (SYNT_ENABLE_TESTS AND BUILD_TESTING)
   gtest_discover_tests(synthetix_tests)
 endif()
 
+# ---------------------------------------------------------------------------
+# Benchmarking Suite
+# ---------------------------------------------------------------------------
 if (SYNT_ENABLE_BENCHMARKS)
   add_executable(synthetix_benchmarks
     benchmarks/bench_engine.cpp
   )
   target_link_libraries(synthetix_benchmarks PRIVATE Synthetix::synthetix)
 endif()
-

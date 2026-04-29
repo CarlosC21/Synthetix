@@ -1,22 +1,37 @@
 #pragma once
 #include <cstdint>
+#include <vector>
 
-namespace Synthetix {
+namespace synthetix {
 
-    enum class Side {
-        BUY,
-        SELL
+    // Type aliases for domain clarity
+    using Price = int32_t;
+    using Volume = uint32_t;
+    using OrderID = uint64_t;
+
+    enum class Side : uint8_t {
+        Buy,
+        Sell
     };
 
     struct Order {
-        uint64_t id;
-        int32_t price;
-        uint32_t quantity;
+        OrderID id;
+        Price price;
+        Volume quantity;
         Side side;
         bool is_active;
 
-        Order(uint64_t id, int32_t price, uint32_t quantity, Side side)
+        Order() = default;
+        Order(OrderID id, Price price, Volume quantity, Side side)
             : id(id), price(price), quantity(quantity), side(side), is_active(true) {}
     };
 
-} // namespace Synthetix
+    // Represents a successful match between two orders
+    struct TradeReport {
+        OrderID makerId;  // Existing order in the book
+        OrderID takerId;  // Incoming order that triggered the match
+        Price price;      // Execution price
+        Volume quantity;  // Shares/contracts traded
+    };
+
+} // namespace synthetix
