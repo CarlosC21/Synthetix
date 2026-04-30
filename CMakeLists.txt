@@ -20,6 +20,8 @@ option(SYNT_ENABLE_BENCHMARKS "Build benchmarks" ON)
 add_library(synthetix
   src/Engine.cpp
   src/OrderBook.cpp  # Added for Phase 2
+  src/Signals.cpp
+  src/RiskController.cpp
 )
 add_library(Synthetix::synthetix ALIAS synthetix)
 
@@ -68,6 +70,8 @@ if (SYNT_ENABLE_TESTS AND BUILD_TESTING)
     tests/test_smoke.cpp
     tests/test_orderbook.cpp
     tests/test_matching.cpp
+    tests/test_signals.cpp
+    tests/test_risk.cpp
   )
   target_link_libraries(synthetix_tests PRIVATE Synthetix::synthetix GTest::gtest_main)
 

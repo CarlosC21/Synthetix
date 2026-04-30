@@ -1,33 +1,46 @@
 #pragma once
-#include <map>
-#include <optional>
+
 #include <vector>
-#include <functional>
+#include <optional>
+#include <algorithm>
 #include "Types.hpp"
 #include "LimitLevel.hpp"
+#include "Signals.hpp"
 
 namespace synthetix {
 
 class OrderBook {
 public:
-    using BidMap = std::map<Price, LimitLevel, std::greater<Price>>;
-    using AskMap = std::map<Price, LimitLevel, std::less<Price>>;
+    /**
+     * Phase 5: Cache-Friendly Refactor.
+     * Replacing std::map with sorted vectors of pairs.
+     */
+    using LevelPair = std::pair<Price, LimitLevel>;
+    using BookSide = std::vector<LevelPair>;
 
-    // Changed: Returns trades executed by this order
+    OrderBook() {
+        bids_.reserve(100); // Pre-allocate to reduce heap churn
+        asks_.reserve(100);
+    }
+
     std::vector<TradeReport> addOrder(Order order);
     
     std::optional<Price> getBestBid() const;
     std::optional<Price> getBestAsk() const;
     Volume getVolumeAtPrice(Price price, Side side) const;
 
-private:
-    BidMap bids_;
-    AskMap asks_;
+    const SignalEngine& getSignals() const { return m_signals; }
 
-    // Template helper to match an incoming order against the opposite side of the book
-    // This maintains Price-Time priority.
-    template<typename TMap>
-    void match(Order& incoming, TMap& oppositeSide, std::vector<TradeReport>& trades);
+private:
+    BookSide bids_; // Sorted High to Low
+    BookSide asks_; // Sorted Low to High
+    SignalEngine m_signals;
+
+    // Helper to maintain vector sorting
+    LimitLevel& getOrCreateLevel(Price price, Side side);
+
+    template<typename TSide>
+    void match(Order& incoming, TSide& oppositeSide, std::vector<TradeReport>& trades);
 };
 
 } // namespace synthetix

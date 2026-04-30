@@ -1,27 +1,35 @@
 #pragma once
 
-#include <cstdint>
-#include <string_view>
+#include "OrderBook.hpp"
+#include "RiskController.hpp"
+#include <vector>
+#include <utility>
 
 namespace synthetix {
 
-struct Order {
-  std::uint64_t id{};
-  std::string_view symbol{};
-  std::int64_t qty{};
-  std::int64_t price_ticks{};
-};
-
+/**
+ * @class Engine
+ * The central nervous system of Synthetix.
+ * Coordinates Risk validation, OrderBook execution, and Signal generation.
+ */
 class Engine final {
 public:
-  Engine() = default;
+    explicit Engine(RiskConfig riskCfg);
 
-  [[nodiscard]] std::uint64_t processed_orders() const noexcept { return processed_orders_; }
-  void on_order(const Order& order) noexcept;
+    /**
+     * The primary entry point for trading.
+     * Performs pre-trade risk checks, executes in the book, and updates post-trade state.
+     * @return A pair containing the RiskStatus and any resulting TradeReports.
+     */
+    std::pair<RiskStatus, std::vector<TradeReport>> submitOrder(const Order& order);
+
+    // Read-only access for monitoring and UI/Strategy layers
+    const OrderBook& getOrderBook() const { return m_orderBook; }
+    const RiskController& getRisk() const { return m_risk; }
 
 private:
-  std::uint64_t processed_orders_{0};
+    OrderBook m_orderBook;
+    RiskController m_risk;
 };
 
-}  // namespace synthetix
-
+} // namespace synthetix
